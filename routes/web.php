@@ -1,24 +1,29 @@
 <?php
-
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ClubController;
+use App\Http\Controllers\UserController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
-*/
-
+// Главная страница
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('clubs.index');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth'])->name('dashboard');
-
+// Маршруты аутентификации
 require __DIR__.'/auth.php';
+
+// ==================== КЛУБЫ ====================
+
+// Удалённые клубы, только для админа
+Route::middleware('auth')->group(function () {
+    Route::get('clubs/trashed', [ClubController::class, 'trashed'])->name('clubs.trashed');
+    Route::post('clubs/{club}/restore', [ClubController::class, 'restore'])->name('clubs.restore');
+    Route::delete('clubs/{club}/force-delete', [ClubController::class, 'forceDelete'])->name('clubs.force-delete');
+});
+
+// Стандартные CRUD маршруты
+Route::resource('clubs', ClubController::class);
+
+// пользователи
+
+Route::get('users', [UserController::class, 'index'])->name('users.index');
+Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');

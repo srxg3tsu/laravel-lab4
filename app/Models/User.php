@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -19,8 +19,10 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
+        'is_admin',
     ];
 
     /**
@@ -40,5 +42,33 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'is_admin' => 'boolean',
     ];
+
+    // Клубы созданные пользователем
+    public function clubs()
+    {
+        return $this->hasMany(Club::class);
+    }
+
+    // Клубы для админа, включая удалённые
+    public function allClubs()
+    {
+        return $this->hasMany(Club::class)->withTrashed();
+    }
+
+    /**
+     * Проверка: является ли пользователь администратором
+     */
+    public function isAdmin(): bool
+    {
+        return $this->is_admin === true;
+    }
+
+    // получить ключ для маршрута, чтобы использовать username
+    // а не id в url
+    public function getRouteKeyName(): string
+    {
+        return 'username';
+    }
 }

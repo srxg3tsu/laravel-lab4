@@ -16,6 +16,7 @@ class Club extends Model
      * Поля, разрешённые для массового заполнения
      */
     protected $fillable = [
+        'user_id',
         'name',
         'league',
         'image_path',
@@ -160,4 +161,58 @@ class Club extends Model
     {
         return $query->where('founded_year', '>=', $year);
     }
+    // клуб добавлен пользователем 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    protected static function booted()
+    {
+        // При создании клуба автоматически присваиваем user_id
+        static::creating(function ($club) {
+            if (auth()->check() && !$club->user_id) {
+                $club->user_id = auth()->id();
+            }
+        });
+
+        // Проверка перед обновлением
+        static::updating(function ($club) {
+            if (!auth()->check()) {
+                return false;
+            }
+
+            $user = auth()->user();
+            
+            // Админ может редактировать всё
+            if ($user->isAdmin()) {
+                return true;
+            }
+
+            // Обычный пользователь — только свои клубы
+            if ($club->user_id !== $user->id) {
+                abort(403, 'Вы не можете редактировать этот клуб');
+            }
+        });
+
+        // Проверка перед удалением
+        static::deleting(function ($club) {
+            if (!auth()->check()) {
+                return false;
+            }
+
+            $user = auth()->user();
+            
+            // Админ может удалять всё
+            if ($user->isAdmin()) {
+                return true;
+            }
+
+            // Обычный пользователь — только свои клубы
+            if ($club->user_id !== $user->id) {
+                abort(403, 'Вы не можете удалить этот клуб');
+            }
+        });
+    }
+
 }

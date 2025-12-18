@@ -1,0 +1,347 @@
+// resources/sass/app.scss
+
+@import './custom';
+
+@import '~@fortawesome/fontawesome-free/css/all.css';
+
+// Переменные
+$color-primary: #0d6efd;
+$color-border: #dee2e6;
+$color-bg: #f8f9fa;
+$color-white: #fff;
+$color-text: #212529;
+$color-text-light: #6c757d;
+
+$card-bg-base: hsl(0, 0%, 98%);
+$border-radius: 8px;
+
+// Миксины
+@mixin flex-between-center {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@mixin type-label-color($index) {
+  $hue-shift: ($index - 1) * 45deg;
+  background-color: adjust-hue($color-primary, $hue-shift);
+}
+
+@mixin dynamic-card-background($index) {
+  $darken-amount: ($index - 1) * 7%;
+  $new-bg-color: darken($card-bg-base, $darken-amount);
+  
+  background-color: $new-bg-color;
+
+  @if lightness($new-bg-color) < 55% {
+    .card-text {
+      color: rgba($color-white, 0.85);
+    }
+    .card-title {
+      color: $color-white;
+    }
+  }
+}
+
+// Базовые стили
+body {
+  font-family: $font-family-sans-serif;
+  background-color: $color-bg;
+  color: $color-text;
+  margin: 0;
+  padding: 0;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+// NAVBAR
+.navbar {
+  background-color: $color-white !important;
+  border-bottom: 2px solid $color-border;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 0.75rem 0;
+
+  .navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: $color-text;
+    text-decoration: none;
+    
+    img {
+      height: 40px;
+      width: auto;
+    }
+
+    .brand-text {
+      @media (max-width: 768px) {
+        display: none;
+      }
+    }
+  }
+
+  .btn-primary {
+    padding: 8px 24px;
+    border-radius: $border-radius;
+    font-weight: 500;
+  }
+}
+
+// MAIN CONTENT
+.main-content {
+  flex-grow: 1;
+  padding: 40px 0;
+  background-color: $color-bg;
+}
+
+.page-title {
+  font-size: clamp(24px, 5vw, 36px);
+  margin-bottom: 30px;
+  font-weight: 700;
+  text-align: center;
+  color: $color-text;
+}
+
+// CARDS GRID
+.cards-grid {
+  --bs-gutter-x: 1.5rem;
+  --bs-gutter-y: 1.5rem;
+}
+
+// КАРТОЧКИ
+.card {
+  width: 100% !important;
+  height: 100%;
+  min-width: 0;
+  border: 1px solid $color-border;
+  border-radius: $border-radius;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+
+  &:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .card-img-wrapper {
+    position: relative;
+    background-color: white;
+    padding: 20px;
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 100%;
+  }
+
+  .card-img-top {
+    max-height: 180px;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+  }
+
+  .badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .card-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    width: 100%;
+
+    .card-title {
+      font-size: clamp(16px, 4vw, 20px);
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: $color-text;
+      line-height: 1.3;
+    }
+
+    .card-text {
+      font-size: clamp(13px, 3vw, 14px);
+      line-height: 1.6;
+      color: $color-text-light;
+      margin-bottom: 16px;
+      flex-grow: 1;
+    }
+
+    .btn-primary {
+      width: 100%;
+      border-radius: $border-radius;
+      padding: 10px;
+      font-weight: 600;
+      transition: all 0.2s;
+
+      &:hover {
+        transform: scale(1.02);
+      }
+    }
+  }
+}
+
+// Динамические фоны карточек
+@for $i from 1 through 5 {
+  .col:nth-child(5n + #{$i}) .card {
+    @include dynamic-card-background($i);
+    
+    .badge {
+      @include type-label-color($i);
+    }
+  }
+}
+
+// DETAIL PAGE
+.club-detail {
+  .club-logo {
+    max-height: 300px;
+    width: auto;
+    object-fit: contain;
+  }
+  
+  .info-section {
+    margin-bottom: 20px;
+    
+    h5 {
+      font-weight: 600;
+      color: $color-text;
+      margin-bottom: 8px;
+      font-size: 18px;
+    }
+    
+    p {
+      color: $color-text-light;
+      line-height: 1.6;
+    }
+  }
+}
+
+// FORMS
+.form-card {
+  .card-header {
+    font-weight: 600;
+    font-size: 1.25rem;
+  }
+}
+
+// TOAST
+.toast-container {
+  z-index: 9999;
+}
+
+.toast {
+  border-radius: $border-radius;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border: none;
+  min-width: 300px;
+
+  .toast-header {
+    background-color: $color-primary;
+    color: white;
+    font-weight: 600;
+    padding: 12px 16px;
+    border-radius: $border-radius $border-radius 0 0;
+
+    .btn-close {
+      filter: invert(1) brightness(2);
+    }
+  }
+
+  .toast-body {
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+
+    .fa-spinner {
+      font-size: 24px;
+      color: $color-primary;
+      animation: spin 1s linear infinite;
+    }
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+// FOOTER
+.site-footer {
+  background-color: $color-white;
+  border-top: 2px solid $color-border;
+  padding: 25px 0;
+  margin-top: auto;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+
+  .footer-content {
+    @include flex-between-center;
+    flex-wrap: wrap;
+    gap: 20px;
+
+    p {
+      margin: 0;
+      color: $color-text-light;
+      font-size: 14px;
+    }
+
+    .social {
+      display: flex;
+      gap: 15px;
+
+      a {
+        transition: all 0.3s;
+        display: block;
+        
+        &:hover {
+          transform: scale(1.1);
+          opacity: 0.8;
+        }
+
+        img {
+          height: 28px;
+          width: 28px;
+          object-fit: contain;
+        }
+      }
+    }
+  }
+}
+
+// Адаптивность
+@media (max-width: 575.98px) {
+  .card {
+    max-width: 100%;
+  }
+  
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+  }
+}

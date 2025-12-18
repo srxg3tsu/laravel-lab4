@@ -4,7 +4,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Club;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 
 class ClubController extends Controller
@@ -20,6 +22,12 @@ class ClubController extends Controller
         return view('clubs.index', compact('clubs'));
     }
 
+     public function __construct()
+    {
+        // Требуем авторизацию для всех действий кроме index и show
+        $this->middleware('auth')->except(['index', 'show']);
+    }
+
     /**
      * Форма создания нового клуба
      * GET /clubs/create
@@ -28,6 +36,19 @@ class ClubController extends Controller
     {
         return view('clubs.create');
     }
+    //Список клубов конкретного пользователя
+    public function userClubs(User $user)
+    {
+        // Для админа показываем включая удалённые
+        if (auth()->check() && auth()->user()->isAdmin()) {
+            $clubs = $user->allClubs()->latest()->get();
+        } else {
+            $clubs = $user->clubs()->latest()->get();
+        }
+
+        return view('clubs.user-clubs', compact('user', 'clubs'));
+    }
+
 
     /**
      * Сохранение нового клуба
@@ -35,7 +56,6 @@ class ClubController extends Controller
      */
     public function store(Request $request)
     {
-        // Валидация на стороне сервера
         $validated = $request->validate([
             'name' => 'required|string|min:2|max:255',
             'league' => 'required|string|max:255',
@@ -46,32 +66,21 @@ class ClubController extends Controller
             'titles' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'image_url' => 'nullable|url',
-        ], [
-            // Кастомные сообщения об ошибках
-            'name.required' => 'Название клуба обязательно для заполнения',
-            'name.min' => 'Название должно содержать минимум 2 символа',
-            'league.required' => 'Укажите лигу/страну',
-            'short_description.required' => 'Краткое описание обязательно',
-            'short_description.min' => 'Краткое описание должно содержать минимум 10 символов',
-            'founded_year.min' => 'Год основания не может быть раньше 1800',
-            'founded_year.max' => 'Год основания не может быть в будущем',
-            'image.image' => 'Файл должен быть изображением',
-            'image.max' => 'Размер изображения не должен превышать 2MB',
         ]);
 
-        // Обработка изображения
+        // user_id присваивается автоматически через событие модели
+        
         if ($request->hasFile('image')) {
             $validated['image_path'] = $this->uploadImage($request->file('image'));
         } elseif ($request->filled('image_url')) {
             $validated['image_path'] = $request->image_url;
         }
 
-        // Создание клуба
         Club::create($validated);
 
         return redirect()
             ->route('clubs.index')
-            ->with('success', 'Клуб "' . $validated['name'] . '" успешно добавлен!');
+            ->with('success', 'Клуб успешно добавлен!');
     }
 
     /**
@@ -98,6 +107,9 @@ class ClubController extends Controller
      */
     public function update(Request $request, Club $club)
     {
+        if (Gate::denies('update-club', $club)) {
+            abort(403, 'У вас нет прав для редактирования этого клуба');
+        }
         // Валидация
         $validated = $request->validate([
             'name' => 'required|string|min:2|max:255',
@@ -133,6 +145,49 @@ class ClubController extends Controller
         return redirect()
             ->route('clubs.show', $club)
             ->with('success', 'Клуб "' . $club->name . '" успешно обновлён!');
+    }
+    // восстановление удалённого клуба
+    public function restore($id)
+    {
+        $club = Club::withTrashed()->findOrFail($id);
+        if (Gate::denies('restore-club', $club)) {
+            abort(403, 'Только администратор может восстанавливать клубы');
+        }
+
+        $club->restore();
+
+        return redirect()
+            ->back()
+            ->with('success', 'Клуб "' . $club->name . '" восстановлен!');
+    }
+    // Полное удаление клуба
+    public function forceDelete($id)
+    {
+        $club = Club::withTrashed()->findOrFail($id);
+        if (Gate::denies('force-delete-club', $club)) {
+            abort(403, 'Только администратор может полностью удалять клубы');
+        }
+
+        // Удаляем изображение
+        $this->deleteOldImage($club);
+        
+        $clubName = $club->name;
+        $club->forceDelete(); // Полное удаление
+
+        return redirect()
+            ->back()
+            ->with('success', 'Клуб "' . $clubName . '" полностью удалён!');
+    }
+    //показат удалённые клубы
+    public function trashed()
+    {
+        if (Gate::denies('admin')) {
+            abort(403, 'Доступ только для администратора');
+        }
+
+        $clubs = Club::onlyTrashed()->with('user')->latest()->get();
+
+        return view('clubs.trashed', compact('clubs'));
     }
 
     /**
